@@ -1,0 +1,1 @@
+This repo includes my work on realtime AQI prediction based on past 24-hours trends. I'm using a [Time Kolmogorov Arnold Network](https://github.com/remigenet/TKAN/tree/main) and possibly compare it to other State of the Art Mult-variate time series models for this specific use case. The training data is sourced from openweather api.
