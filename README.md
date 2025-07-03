@@ -22,10 +22,8 @@ VAYU aims to provide a robust framework for real-time Air Quality Index (AQI) pr
 
 - Interactive Jupyter Notebooks for experimentation and visualization
 - Modular Python scripts for data processing and analysis
-- High-performance C++ extensions for compute-intensive tasks
-- TypeScript/JavaScript frontend (if applicable) for interactive dashboards or web-based tools
+- TypeScript frontend for interactive dashboards or web-based tools
 - Real-time AQI prediction based on past 24-hour data
-- (List any other key features of your project)
 
 ## Installation
 
@@ -33,8 +31,6 @@ VAYU aims to provide a robust framework for real-time Air Quality Index (AQI) pr
 
 - Python 3.8+
 - Jupyter Notebook or JupyterLab
-- (Optional) C++ compiler (for C++ components)
-- (Optional) Node.js & npm (for TypeScript/JavaScript components)
 
 ### Steps
 
