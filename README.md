@@ -67,8 +67,6 @@ VAYU aims to provide a robust framework for real-time Air Quality Index (AQI) pr
   ```bash
   python path/to/script.py
   ```
-- For C++ modules: (add specific build and run instructions)
-- For TypeScript/JavaScript frontend: (add instructions to start the frontend, if any)
 
 ## Project Structure
 
