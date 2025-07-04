@@ -21,56 +21,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect package manager
-        id: detect-package-manager
-        working-directory: VAYU_website
-        run: |
-          if [ -f "yarn.lock" ]; then
-            echo "manager=yarn" >> $GITHUB_OUTPUT
-            echo "command=install" >> $GITHUB_OUTPUT
-            echo "runner=yarn" >> $GITHUB_OUTPUT
-            exit 0
-          elif [ -f "package.json" ]; then
-            echo "manager=npm" >> $GITHUB_OUTPUT
-            echo "command=ci" >> $GITHUB_OUTPUT
-            echo "runner=npx --no-install" >> $GITHUB_OUTPUT
-            exit 0
-          else
-            echo "Unable to determine package manager"
-            exit 1
-          fi
-
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: ${{ steps.detect-package-manager.outputs.manager }}
-        # No working-directory needed here
+        # No cache option here!
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          static_site_generator: next
-
-      - name: Restore cache
+      - name: Cache node_modules
         uses: actions/cache@v4
         with:
-          path: |
-            VAYU_website/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('VAYU_website/**/package-lock.json', 'VAYU_website/**/yarn.lock') }}-${{ hashFiles('VAYU_website/**/*.[jt]s', 'VAYU_website/**/*.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('VAYU_website/**/package-lock.json', 'VAYU_website/**/yarn.lock') }}-
+          path: VAYU_website/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('VAYU_website/package-lock.json', 'VAYU_website/yarn.lock') }}
 
       - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        run: npm ci
         working-directory: VAYU_website
 
       - name: Build with Next.js
-        run: ${{ steps.detect-package-manager.outputs.runner }} next build
+        run: npx next build
         working-directory: VAYU_website
 
       - name: Export static site
-        run: ${{ steps.detect-package-manager.outputs.runner }} next export
+        run: npx next export
         working-directory: VAYU_website
 
       - name: Upload artifact
