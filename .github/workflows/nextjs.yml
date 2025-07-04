@@ -17,15 +17,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: VAYU_website  # << All run commands happen in your Next.js folder
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Detect package manager
         id: detect-package-manager
+        working-directory: VAYU_website
         run: |
           if [ -f "yarn.lock" ]; then
             echo "manager=yarn" >> $GITHUB_OUTPUT
@@ -47,6 +45,7 @@ jobs:
         with:
           node-version: "20"
           cache: ${{ steps.detect-package-manager.outputs.manager }}
+        # No working-directory needed here
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -57,19 +56,22 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .next/cache
+            VAYU_website/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('VAYU_website/**/package-lock.json', 'VAYU_website/**/yarn.lock') }}-${{ hashFiles('VAYU_website/**/*.[jt]s', 'VAYU_website/**/*.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('VAYU_website/**/package-lock.json', 'VAYU_website/**/yarn.lock') }}-
 
       - name: Install dependencies
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        working-directory: VAYU_website
 
       - name: Build with Next.js
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
+        working-directory: VAYU_website
 
       - name: Export static site
         run: ${{ steps.detect-package-manager.outputs.runner }} next export
+        working-directory: VAYU_website
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
