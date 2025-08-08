@@ -381,7 +381,8 @@ class PredictionRequest(BaseModel):
 class PredictionResponse(BaseModel):
     status: str 
     message: str 
-    predictions: list = None 
+    predictions: list = None
+    historical_data: list = None
 
 
 @app.post("/predict", response_model=PredictionResponse)
@@ -489,7 +490,22 @@ async def predict_aqi_endpoint(request: PredictionRequest):
             "aqi": float(predicted_aqi_values[i]) 
         })
 
-    return PredictionResponse(status="success", message="Prediction successful.", predictions=predictions_list)
+    historical_data_list = []
+    if message and isinstance(message, list) and len(message) > 0 and latest_data_sequence_unscaled is not None:
+        historical_aqi = latest_data_sequence_unscaled[0, :, 0]
+        for i in range(len(message)):
+            timestamp_str = message[i].strftime('%Y-%m-%d %H:%M:%S')
+            historical_data_list.append({
+                "timestamp": timestamp_str,
+                "aqi": float(historical_aqi[i])
+            })
+
+    return PredictionResponse(
+        status="success",
+        message="Prediction successful.",
+        predictions=predictions_list,
+        historical_data=historical_data_list
+    )
 
 @app.get("/")
 async def read_root():

@@ -10,6 +10,7 @@ import PrecautionsSheet from '@/components/PrecautionsSheet';
 import Preloader from '@/components/Preloader';
 import { getAqiPrediction } from '@/services/aqi-prediction-service';
 import { fetchWeatherApi } from 'openmeteo';
+import ForecastChart from '@/components/ForecastChart';
 
 
 export interface StaticPrecautionsOutput {
@@ -91,12 +92,14 @@ const getStaticPrecautions = (aqi: number | null): StaticPrecautionsOutput | nul
 export default function HomePage() {
   const [isPreloading, setIsPreloading] = useState(true);
   const [displayAqi, setDisplayAqi] = useState<number | null>(null);
-  // const [currentTemperature, setCurrentTemperature] = useState<number | null>(null); // Reverted
+  const [currentTemperature, setCurrentTemperature] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(ENABLE_AQI_FETCHING);
   const [error, setError] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string | null>(ENABLE_AQI_FETCHING ? null : "Fixed AQI (Testing)");
 
   const [highestForecastedAqi, setHighestForecastedAqi] = useState<number | null>(null);
+  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [historicalData, setHistoricalData] = useState<any[]>([]);
   const [isBadAqiForecasted, setIsBadAqiForecasted] = useState<boolean>(false);
   const [staticPrecautions, setStaticPrecautions] = useState<StaticPrecautionsOutput | null>(null);
   const [showPrecautionsSheet, setShowPrecautionsSheet] = useState<boolean>(false);
@@ -114,7 +117,7 @@ export default function HomePage() {
       setHighestForecastedAqi(fixedAqi);
       setIsBadAqiForecasted(fixedAqi > AQI_ALERT_THRESHOLD);
       setStaticPrecautions(getStaticPrecautions(fixedAqi));
-      // setCurrentTemperature(25); // Reverted
+      setCurrentTemperature(25);
       console.log("Using fixed AQI for testing:", fixedAqi);
       return;
     }
@@ -138,13 +141,29 @@ export default function HomePage() {
     let currentPm10: number | null = null;
     let currentCO: number | null = null;
     let hourlyAqiValues: number[] = [];
+    let temp: number | null = null;
 
     try {
+      // Fetch both AQI and Weather data in parallel
+      const weatherApiUrl = "https://api.open-meteo.com/v1/forecast";
+      const weatherParams = {
+          latitude: lat,
+          longitude: lon,
+          current: "temperature_2m",
+          timezone: "auto",
+      };
+
       console.log("Fetching Open-Meteo Air Quality data with params:", airQualityParams);
-      const aqResponses = await fetchWeatherApi(airQualityApiUrl, airQualityParams);
+      const aqPromise = fetchWeatherApi(airQualityApiUrl, airQualityParams);
+
+      console.log("Fetching Open-Meteo Weather data with params:", weatherParams);
+      const weatherPromise = fetchWeatherApi(weatherApiUrl, weatherParams);
+
+      const [aqResponses, weatherResponses] = await Promise.all([aqPromise, weatherPromise]);
+
+      // Process AQI Response
       const aqResponse = aqResponses[0];
       console.log("Open-Meteo Air Quality response received:", aqResponse);
-
       const aqCurrentResult = aqResponse.current();
       if (aqCurrentResult) {
         console.log("Processing currentResult from Open-Meteo Air Quality:", aqCurrentResult);
@@ -179,27 +198,49 @@ export default function HomePage() {
         console.warn("No hourlyResult from Open-Meteo Air Quality.");
       }
 
-      console.log("Attempting to call getAqiPrediction with:", { lat, lon, pm2_5: currentPm2_5, pm10: currentPm10, co: currentCO, temp: null }); // temp is now passed as null
+      // Process Weather Response
+      const weatherResponse = weatherResponses[0];
+      console.log("Open-Meteo Weather response received:", weatherResponse);
+      const weatherCurrentResult = weatherResponse.current();
+      if (weatherCurrentResult) {
+        console.log("Processing currentResult from Open-Meteo Weather:", weatherCurrentResult);
+        const tempVal = weatherCurrentResult.variables(0)!.value();
+        temp = isNaN(tempVal) ? null : Math.round(tempVal);
+        setCurrentTemperature(temp);
+        console.log("Extracted current Temperature value:", { temp });
+      } else {
+        console.warn("No currentResult from Open-Meteo Weather.");
+        setCurrentTemperature(null);
+      }
+
+
+      console.log("Attempting to call getAqiPrediction with:", { lat, lon, pm2_5: currentPm2_5, pm10: currentPm10, co: currentCO, temp: temp });
       try {
-        const predictions = await getAqiPrediction(
+        const predictionResult = await getAqiPrediction(
           lat,
           lon,
           currentPm2_5,
           currentPm10,
           currentCO,
-          null, // Pass null for temperature, as backend handles it
-          1
+          temp,
+          12 // Request a 12-hour forecast
         );
 
-        console.log("Received predictions from custom service:", predictions);
+        console.log("Received prediction result from custom service:", predictionResult);
+        const { predictions, historical_data } = predictionResult;
 
-        if (predictions && predictions.length > 0 && predictions[0].aqi !== undefined) {
-          const nextHourPredictionAqi = Math.round(predictions[0].aqi);
-          console.log("Setting highestForecastedAqi to (from custom service):", nextHourPredictionAqi);
-          setHighestForecastedAqi(nextHourPredictionAqi);
-          setIsBadAqiForecasted(nextHourPredictionAqi > AQI_ALERT_THRESHOLD);
+        setForecastData(predictions || []);
+        setHistoricalData(historical_data || []);
+
+        if (predictions && predictions.length > 0) {
+          const maxAqi = Math.max(...predictions.map(p => p.aqi));
+          const roundedMaxAqi = Math.round(maxAqi);
+          console.log("Setting highestForecastedAqi to (from custom service):", roundedMaxAqi);
+          setHighestForecastedAqi(roundedMaxAqi);
+          setIsBadAqiForecasted(roundedMaxAqi > AQI_ALERT_THRESHOLD);
         } else {
-          console.warn("Custom AQI prediction service returned no predictions, an empty array, or prediction missing AQI. Falling back to Open-Meteo hourly if available.");
+          console.warn("Custom AQI prediction service returned no predictions or an empty array. Falling back to Open-Meteo hourly if available.");
+          setForecastData([]);
           if (hourlyAqiValues.length > 0) {
             const maxAqiInForecast = Math.max(...hourlyAqiValues);
             console.log("Setting highestForecastedAqi to (from Open-Meteo hourly fallback):", maxAqiInForecast);
@@ -218,6 +259,8 @@ export default function HomePage() {
           description: "Could not fetch custom AQI forecast. Using standard forecast.",
           variant: "destructive",
         });
+        setForecastData([]);
+        setHistoricalData([]);
         if (hourlyAqiValues.length > 0) {
           const maxAqiInForecast = Math.max(...hourlyAqiValues);
           console.log("Setting highestForecastedAqi to (from Open-Meteo hourly fallback after prediction error):", maxAqiInForecast);
@@ -244,7 +287,7 @@ export default function HomePage() {
       }
       setHighestForecastedAqi(null);
       setIsBadAqiForecasted(false);
-      // setCurrentTemperature(null); // Reverted
+      setCurrentTemperature(null);
     } finally {
       setIsLoading(false);
       console.log("Finished fetchAqiData. isLoading:", false);
@@ -261,7 +304,7 @@ export default function HomePage() {
             setDisplayAqi(75);
             setStaticPrecautions(getStaticPrecautions(75));
          }
-         // setCurrentTemperature(null); // Reverted
+         setCurrentTemperature(null);
         setIsLoading(false);
         return;
       }
@@ -302,7 +345,7 @@ export default function HomePage() {
             setDisplayAqi(75);
             setStaticPrecautions(getStaticPrecautions(75));
           }
-          // setCurrentTemperature(null); // Reverted
+          setCurrentTemperature(null);
           setIsLoading(false);
         }
       );
@@ -321,7 +364,7 @@ export default function HomePage() {
         setHighestForecastedAqi(fixedAqi);
         setIsBadAqiForecasted(fixedAqi > AQI_ALERT_THRESHOLD);
         setStaticPrecautions(getStaticPrecautions(fixedAqi));
-        // setCurrentTemperature(25); // Reverted
+        setCurrentTemperature(25);
         setIsLoading(false);
       }
     }
@@ -408,7 +451,7 @@ export default function HomePage() {
               </div>
             ) : (displayAqi !== null) ? ( // Changed condition to only check displayAqi
               <div className="text-center py-1">
-                 {/* <div className="flex justify-around items-center mb-3">  // Reverted: Temperature display removed
+                 <div className="flex justify-around items-center mb-3">
                     {displayAqi !== null && (
                         <div className="flex flex-col items-center">
                             <span className="text-xs text-foreground/70">AQI</span>
@@ -421,10 +464,6 @@ export default function HomePage() {
                             <p className="text-5xl font-bold text-foreground tabular-nums">{currentTemperature}°C</p>
                          </div>
                     )}
-                </div> */}
-                <div className="flex flex-col items-center mb-3">
-                    <span className="text-xs text-foreground/70">AQI</span>
-                    <p className="text-6xl font-bold text-foreground tabular-nums">{displayAqi}</p>
                 </div>
 
 
@@ -451,6 +490,7 @@ export default function HomePage() {
                     View Precautions
                   </Button>
                 )}
+                <ForecastChart historicalData={historicalData} forecastData={forecastData} />
               </div>
             ) : (
                <div className="flex flex-col items-center justify-center h-32 p-3">

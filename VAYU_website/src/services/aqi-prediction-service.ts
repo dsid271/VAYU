@@ -23,6 +23,7 @@ interface Prediction {
 interface PredictionResponse {
   status: "success" | "error";
   predictions?: Prediction[];
+  historical_data?: Prediction[];
   message?: string;
 }
 
@@ -35,7 +36,7 @@ interface PredictionResponse {
  * @param co - Current Carbon Monoxide value (optional).
  * @param temp - Current Temperature value (optional).
  * @param n_ahead - Number of hours ahead to predict.
- * @returns A promise that resolves to an array of prediction objects.
+ * @returns A promise that resolves to the full prediction response object.
  * @throws Will throw an error if the fetch or prediction fails.
  */
 export async function getAqiPrediction(
@@ -46,7 +47,7 @@ export async function getAqiPrediction(
   co: number | null | undefined,
   temp: number | null | undefined,
   n_ahead: number
-): Promise<Prediction[]> {
+): Promise<PredictionResponse> {
   const spaceUrl = "https://nikethanreddy-project.hf.space";
   const predictEndpoint = `${spaceUrl}/predict`;
 
@@ -88,9 +89,9 @@ export async function getAqiPrediction(
 
     const predictionResult: PredictionResponse = await response.json();
 
-    if (predictionResult.status === "success" && predictionResult.predictions) {
-      console.log("Prediction successful:", predictionResult.predictions);
-      return predictionResult.predictions;
+    if (predictionResult.status === "success") {
+      console.log("Prediction successful:", predictionResult);
+      return predictionResult;
     } else {
       console.error("Prediction API error:", predictionResult.message, "for request:", requestPayload);
       throw new Error(`Prediction API error: ${predictionResult.message || 'Unknown error from prediction API'}`);
