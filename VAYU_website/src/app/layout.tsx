@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'DynamicScape',
-  description: 'Cityscape that changes with time and AQI',
+  title: 'VAYU',
+  description: 'VAYU: Real-time air quality insights. Monitor changing environments, track AQI trends, and receive reliable health guidance for your location. Built for transparency, accuracy, and your well-being.',
 };
 
 export default function RootLayout({
