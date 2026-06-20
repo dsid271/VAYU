@@ -2,7 +2,7 @@
 
 > **Predicting air quality with cutting-edge deep learning and IoT integration**
 
-[Live Dashboard](https://vayudashboard.vercel.app) | [Project Documentation](#documentation) | [Contributors](#contributors)
+[Live Dashboard](https://vayudashboard.vercel.app) | [Backend API (HF Space)](https://huggingface.co/spaces/nikethanreddy/project) | [Project Documentation](#documentation) | [Contributors](#contributors)
 
 ## 🌍 Overview
 
@@ -61,6 +61,7 @@
 - Keras/JAX model inference with custom layer support
 - Real-time data retrieval and preprocessing
 - Comprehensive error handling and logging
+- **Hosted on**: [Hugging Face Spaces](https://huggingface.co/spaces/nikethanreddy/project) (free tier with auto-sleep)
 
 **Frontend (Next.js 15 + TypeScript)**
 - Real-time AQI visualization with Recharts
@@ -69,6 +70,7 @@
 - Radix UI component library for accessible UI
 - Tailwind CSS for responsive design
 - Google Genkit AI integration for enhanced insights
+- **Live at**: [vayudashboard.vercel.app](https://vayudashboard.vercel.app)
 
 **Hardware Layer (C++)**
 - Multi-sensor data aggregation
@@ -99,7 +101,21 @@ def calculate_sub_index(concentration, breakpoints, aqi_values):
 - ESP32 microcontroller (optional, for IoT sensors)
 - CUDA/GPU support (optional, for faster training)
 
-### Backend Setup
+### Live Services
+
+**Option 1: Use Live Endpoints** (Recommended for testing)
+```bash
+# Frontend Dashboard
+https://vayudashboard.vercel.app
+
+# Backend API (Hugging Face Spaces)
+https://huggingface.co/spaces/nikethanreddy/project
+
+# Note: HF Spaces auto-sleep after inactivity
+# → Click "Restart" button on the Space page if you get timeout errors
+```
+
+### Backend Setup (Local)
 
 ```bash
 # Clone repository
@@ -116,6 +132,9 @@ export JAX_ENABLE_X64=True
 
 # Start FastAPI server
 uvicorn VAYU_website.app:app --reload --host 0.0.0.0 --port 8000
+
+# API will be available at http://localhost:8000
+# Swagger UI docs: http://localhost:8000/docs
 ```
 
 ### Frontend Setup
@@ -306,13 +325,20 @@ CO (µg/m³) = CO (ppm) × 1145.0          # PPM to mass conversion
 - **API Response Time**: ~2-3 seconds (Open-Meteo)
 - **Data Processing**: ~1 second (preprocessing & scaling)
 - **Model Inference**: ~100-500ms (depends on backend)
-- **End-to-End Latency**: <5 seconds
+- **End-to-End Latency**: <5 seconds (local) / ~10-15s (HF Spaces)
 
 ### System Scalability
 - **Concurrent Users**: Horizontal scaling via Docker/Kubernetes
 - **Database**: Firebase Realtime DB (scales to thousands of nodes)
 - **Frontend**: Vercel deployment with edge caching
 - **Model Serving**: Single instance handles ~100 req/s
+
+### Hugging Face Spaces Notes
+- **Tier**: Free tier (Community GPU optional)
+- **Auto-Sleep**: Spaces sleep after 48 hours of inactivity
+- **Cold Start**: ~20-30 seconds on first request after sleep
+- **Restart**: Manual restart button available on Space page
+- **Persistent Storage**: Model weights preserved across restarts
 
 ---
 
@@ -347,6 +373,15 @@ npm run build
 
 # Deployment to Vercel (auto from git push)
 git push origin main
+```
+
+### Deploying Backend to HF Spaces
+```bash
+# 1. Create Space on Hugging Face Hub
+# 2. Configure app.py as entry point
+# 3. Add requirements.txt
+# 4. Push to Space repository
+# 5. Space auto-deploys from git
 ```
 
 ---
@@ -388,6 +423,7 @@ git push origin main
 - [ ] Model interpretability (SHAP values, attention visualization)
 - [ ] Ensemble models combining multiple architectures
 - [ ] Federated learning for privacy-preserving deployment
+- [ ] Paid HF Spaces tier for zero cold-start latency
 
 ---
 
@@ -397,7 +433,9 @@ git push origin main
 See detailed methodology in `notebooks/Revised_Time_Series_Forecast_Code.ipynb`
 
 ### API Documentation
-Interactive API docs available at `http://localhost:8000/docs` (Swagger UI)
+Interactive API docs available at:
+- **Local**: `http://localhost:8000/docs` (Swagger UI)
+- **Live (HF Spaces)**: Available via Space interface
 
 ### Hardware Setup Guide
 See `cpp/README.md` for ESP32 flashing and sensor calibration
@@ -406,8 +444,8 @@ See `cpp/README.md` for ESP32 flashing and sensor calibration
 
 ## 👥 Contributors
 
-- **[dsid271](https://github.com/dsid271)** - ML Architecture, Backend Development
-- **[sreenikethanreddy](https://github.com/sreenikethanreddy)** - Full-Stack Development, Hardware Integration
+- **[dsid271](https://github.com/dsid271)** - ML Architecture, Backend Development, Frontend Engineering
+- **[sreenikethanreddy](https://github.com/sreenikethanreddy)** - Full-Stack Development, Hardware Integration, HF Spaces Deployment
 
 ---
 
@@ -422,6 +460,8 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 - **[Time Kolmogorov-Arnold Networks (TKAN)](https://github.com/remigenet/TKAN)** - Inspired our advanced architecture
 - **[Open-Meteo](https://open-meteo.com/)** - Real-time weather & air quality data
 - **Firebase** - Real-time database and deployment platform
+- **Hugging Face** - Free GPU compute and Space hosting
+- **Vercel** - Frontend deployment infrastructure
 - **Keras/JAX Community** - Excellent documentation and support
 
 ---
@@ -432,6 +472,7 @@ For questions, issues, or collaboration inquiries:
 - Open an [Issue](https://github.com/dsid271/VAYU/issues)
 - Check [Discussions](https://github.com/dsid271/VAYU/discussions)
 - Visit [Live Dashboard](https://vayudashboard.vercel.app)
+- Test [Backend API](https://huggingface.co/spaces/nikethanreddy/project)
 
 ---
 
