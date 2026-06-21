@@ -98,6 +98,8 @@ export default function HomePage() {
 
   const [highestForecastedAqi, setHighestForecastedAqi] = useState<number | null>(null);
   const [isBadAqiForecasted, setIsBadAqiForecasted] = useState<boolean>(false);
+  const [hourlyAqiData, setHourlyAqiData] = useState<Array<{ time: string; timeLabel: string; aqi: number; originalTimeRaw: string }>>([]);
+  const [modelPredictions, setModelPredictions] = useState<Array<{ time: string; timeLabel: string; aqi: number; originalTimeRaw: string }>>([]);
   const [staticPrecautions, setStaticPrecautions] = useState<StaticPrecautionsOutput | null>(null);
   const [showPrecautionsSheet, setShowPrecautionsSheet] = useState<boolean>(false);
   const [alertShownForForecast, setAlertShownForForecast] = useState<boolean>(false);
@@ -166,17 +168,74 @@ export default function HomePage() {
       setDisplayAqi(currentAqi ?? 75);
 
       const aqHourlyResult = aqResponse.hourly();
+      let timesArray: string[] | undefined = undefined;
       if (aqHourlyResult) {
         console.log("Processing hourlyResult from Open-Meteo Air Quality:", aqHourlyResult);
-        const aqiArray = aqHourlyResult.variables(0)!.valuesArray();
-        if (aqiArray) {
-            hourlyAqiValues = Array.from(aqiArray).map(v => Math.round(v));
+        try {
+          const aqiArray = aqHourlyResult.variables(0)!.valuesArray();
+          if (aqiArray) {
+            hourlyAqiValues = Array.from(aqiArray).map((v: any) => Math.round(v));
             console.log("Extracted hourlyAqiValues for fallback:", hourlyAqiValues);
-        } else {
-          console.warn("No aqiArray in hourlyResult from Open-Meteo Air Quality.");
+          }
+
+          // Try to read times via a helper if available (flatbuffers wrapper)
+          if (typeof (aqHourlyResult as any).timesArray === "function") {
+            timesArray = Array.from((aqHourlyResult as any).timesArray());
+            console.log("Extracted timesArray from flatbuffers wrapper:", timesArray);
+          }
+        } catch (e) {
+          console.warn("Error extracting hourly arrays from flatbuffers result:", e);
         }
       } else {
         console.warn("No hourlyResult from Open-Meteo Air Quality.");
+      }
+
+      // If we didn't get timestamps from the flatbuffers response, fetch JSON as a fallback to get exact timestamps
+      if ((!timesArray || timesArray.length === 0) && hourlyAqiValues.length > 0) {
+        try {
+          const jsonUrl = `${airQualityApiUrl}?latitude=${lat}&longitude=${lon}&hourly=european_aqi&timezone=auto&forecast_days=1&format=json`;
+          console.log("Fetching JSON fallback for hourly times:", jsonUrl);
+          const jsonResp = await fetch(jsonUrl);
+          if (jsonResp.ok) {
+            const jsonData = await jsonResp.json();
+            if (jsonData && jsonData.hourly && Array.isArray(jsonData.hourly.time) && Array.isArray(jsonData.hourly.european_aqi)) {
+              timesArray = jsonData.hourly.time;
+              hourlyAqiValues = jsonData.hourly.european_aqi.map((v: any) => Math.round(v));
+              console.log("JSON fallback provided times and aqi arrays.");
+            }
+          }
+        } catch (e) {
+          console.warn("JSON fallback failed:", e);
+        }
+      }
+
+      // Build hourly data with real timestamps when available
+      const parseToLocalDate = (timeStr: string) => {
+        // If API returns 'YYYY-MM-DD HH:mm:ss' (no timezone), treat it as UTC
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(timeStr)) {
+          return new Date(timeStr.replace(' ', 'T') + 'Z');
+        }
+        // If already ISO-like but missing Z, append Z to treat as UTC
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
+          return new Date(timeStr + 'Z');
+        }
+        return new Date(timeStr);
+      };
+
+      if (hourlyAqiValues.length > 0) {
+        const hourlyData = hourlyAqiValues.map((val, idx) => {
+          const rawTime = timesArray && timesArray[idx] ? timesArray[idx] : new Date(Date.now() + idx * 3600 * 1000).toISOString();
+          let dateObj = parseToLocalDate(rawTime);
+          if (isNaN(dateObj.getTime())) {
+            dateObj = new Date();
+            dateObj.setHours(dateObj.getHours() + idx);
+          }
+          const timeLabel = dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: 'numeric' });
+          const originalRaw = timesArray && timesArray[idx] ? timesArray[idx] : rawTime;
+          return { time: dateObj.toISOString(), timeLabel, aqi: val, isObserved: true, originalTimeRaw: originalRaw };
+        });
+
+        setHourlyAqiData(hourlyData.slice(0, 24));
       }
 
       console.log("Attempting to call getAqiPrediction with:", { lat, lon, pm2_5: currentPm2_5, pm10: currentPm10, co: currentCO, temp: null }); // temp is now passed as null
@@ -188,7 +247,7 @@ export default function HomePage() {
           currentPm10,
           currentCO,
           null, // Pass null for temperature, as backend handles it
-          1
+          24
         );
 
         console.log("Received predictions from custom service:", predictions);
@@ -198,18 +257,29 @@ export default function HomePage() {
           console.log("Setting highestForecastedAqi to (from custom service):", nextHourPredictionAqi);
           setHighestForecastedAqi(nextHourPredictionAqi);
           setIsBadAqiForecasted(nextHourPredictionAqi > AQI_ALERT_THRESHOLD);
+
+          const lastObservedTime = hourlyAqiValues.length > 0 && timesArray && timesArray.length > 0
+            ? parseToLocalDate(timesArray[timesArray.length - 1])
+            : new Date();
+
+          const futureData = predictions.map((prediction, idx) => {
+            const futureDate = new Date(lastObservedTime.getTime() + (idx + 1) * 3600 * 1000);
+            const rawTimestamp = prediction.timestamp || futureDate.toISOString();
+            const localTime = parseToLocalDate(rawTimestamp);
+            const timeLabel = localTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: 'numeric' });
+            return {
+              time: localTime.toISOString(),
+              timeLabel,
+              aqi: Math.round(prediction.aqi),
+              originalTimeRaw: rawTimestamp,
+            };
+          });
+
+          setModelPredictions(futureData.slice(0, 24));
         } else {
-          console.warn("Custom AQI prediction service returned no predictions, an empty array, or prediction missing AQI. Falling back to Open-Meteo hourly if available.");
-          if (hourlyAqiValues.length > 0) {
-            const maxAqiInForecast = Math.max(...hourlyAqiValues);
-            console.log("Setting highestForecastedAqi to (from Open-Meteo hourly fallback):", maxAqiInForecast);
-            setHighestForecastedAqi(maxAqiInForecast);
-            setIsBadAqiForecasted(maxAqiInForecast > AQI_ALERT_THRESHOLD);
-          } else {
-            console.warn("No Open-Meteo hourly forecast available for fallback.");
-            setHighestForecastedAqi(null);
-            setIsBadAqiForecasted(false);
-          }
+          console.warn("Custom AQI prediction service returned no predictions, an empty array, or prediction missing AQI.");
+          setHighestForecastedAqi(null);
+          setIsBadAqiForecasted(false);
         }
       } catch (predictionError) {
         console.error("Error fetching AQI prediction from custom service:", predictionError);
@@ -462,12 +532,15 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </div>
+      
       {currentPrecautions &&
         <PrecautionsSheet
           isOpen={showPrecautionsSheet}
           onOpenChange={setShowPrecautionsSheet}
           precautionsData={currentPrecautions}
           forecastedAqi={highestForecastedAqi}
+          hourlyData={hourlyAqiData}
+          modelPredictions={modelPredictions}
         />
       }
     </main>

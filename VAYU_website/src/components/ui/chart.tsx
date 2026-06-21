@@ -111,6 +111,7 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
+      showBothTimes?: boolean
     }
 >(
   (
@@ -127,6 +128,7 @@ const ChartTooltipContent = React.forwardRef<
       formatter,
       color,
       nameKey,
+      showBothTimes = false,
       labelKey,
     },
     ref
@@ -237,6 +239,16 @@ const ChartTooltipContent = React.forwardRef<
                         <span className="text-muted-foreground">
                           {itemConfig?.label || item.name}
                         </span>
+                        {showBothTimes && item.payload && typeof item.payload === 'object' && (
+                          <div className="text-[11px] text-muted-foreground/80">
+                            {item.payload.originalTimeRaw && (
+                              <div>API: {String(item.payload.originalTimeRaw)}</div>
+                            )}
+                            {item.payload.time && (
+                              <div>Local: {new Date(String(item.payload.time)).toLocaleString()}</div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       {item.value && (
                         <span className="font-mono font-medium tabular-nums text-foreground">
@@ -299,12 +311,19 @@ const ChartLegendContent = React.forwardRef<
               {itemConfig?.icon && !hideIcon ? (
                 <itemConfig.icon />
               ) : (
-                <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
-                />
+                <div className="flex items-center gap-1">
+                  {item.dataKey === 'predicted' ? (
+                    <div
+                      className="h-0 w-5 border-b-2 border-dashed"
+                      style={{ borderColor: item.color ?? itemConfig?.color }}
+                    />
+                  ) : (
+                    <div
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: item.color ?? itemConfig?.color }}
+                    />
+                  )}
+                </div>
               )}
               {itemConfig?.label}
             </div>
