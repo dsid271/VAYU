@@ -1,0 +1,47 @@
+# Python environments
+.hf-space-project/venv/
+.venv-3.12/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment directories (legacy)
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+.npm
+package-lock.json
+yarn.lock
+
+# Build files
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env.local
+.env.*.local
+
+# Next.js
+.next/
+out/
