@@ -47,7 +47,7 @@ export async function getAqiPrediction(
   temp: number | null | undefined,
   n_ahead: number
 ): Promise<Prediction[]> {
-  const spaceUrl = "https://nikethanreddy-project.hf.space";
+  const spaceUrl = "https://vayu2601-project.hf.space";
   const predictEndpoint = `${spaceUrl}/predict`;
 
   // Prepare the data to send in the request body
