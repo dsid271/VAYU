@@ -47,8 +47,8 @@ export async function getAqiPrediction(
   temp: number | null | undefined,
   n_ahead: number
 ): Promise<Prediction[]> {
-  const spaceUrl = "https://vayu2601-project.hf.space";
-  const predictEndpoint = `${spaceUrl}/predict`;
+  const baseUrl = process.env.NEXT_PUBLIC_AQI_PREDICTION_URL?.trim() || "https://vayu2601-project.hf.space";
+  const predictEndpoint = `${baseUrl.replace(/\/$/, "")}/predict`;
 
   // Prepare the data to send in the request body
   // Only include optional fields if they are not null/undefined
