@@ -14,12 +14,12 @@ VAYU is an end-to-end AQI forecasting project with a FastAPI backend, a trained 
 
 ## Repository layout
 This repository root contains both the backend and the frontend as sibling folders.
-- [hf-space-project](hf-space-project) — backend model serving and prediction logic
+- [Backend Hugging Face Space](https://huggingface.co/spaces/vayu2601/project/tree/main) — backend model serving and prediction logic
 - [VAYU_website](VAYU_website) — frontend dashboard and chart UI
 - [notebooks](notebooks) — training notebook and experimentation
 - [cpp](cpp) — embedded firmware sketch
 
-The frontend folder does not contain the backend source; the backend lives separately in [hf-space-project](hf-space-project).
+The frontend folder does not contain the backend source; the backend lives separately in the Hugging Face Space linked above.
 
 ## Getting started for contributors
 If you want to run the project locally, the quickest path is:
