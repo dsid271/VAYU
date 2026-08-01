@@ -7,6 +7,8 @@ This folder contains the Next.js frontend for VAYU.
 - displays forecast values returned by the backend `/predict` endpoint
 - renders a chart for observed versus predicted AQI values
 
+This folder contains only the frontend code. The backend lives separately in [hf-space-project](../hf-space-project).
+
 ## Local development
 ```bash
 cd VAYU_website

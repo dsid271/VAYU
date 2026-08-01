@@ -1,4 +1,18 @@
-﻿# VAYU
+﻿---
+title: Project
+emoji: 📈
+colorFrom: purple
+colorTo: blue
+sdk: docker
+sdk_version: 5.32.0
+app_file: app.py
+pinned: false
+license: apache-2.0
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+
+# VAYU
 
 VAYU is an end-to-end AQI forecasting project with a FastAPI backend, a trained TensorFlow/Keras model, and a Next.js frontend.
 
@@ -13,10 +27,13 @@ VAYU is an end-to-end AQI forecasting project with a FastAPI backend, a trained 
 - inference logic is implemented around the ratio-domain preprocessing used during training
 
 ## Repository layout
-- `hf-space-project/` — backend model serving and prediction logic
-- `VAYU_website/` — frontend dashboard and chart UI
-- `notebooks/` — training notebook and experimentation
-- `cpp/` — embedded firmware sketch
+This repository root contains both the backend and the frontend as sibling folders.
+- [hf-space-project](hf-space-project) — backend model serving and prediction logic
+- [VAYU_website](VAYU_website) — frontend dashboard and chart UI
+- [notebooks](notebooks) — training notebook and experimentation
+- [cpp](cpp) — embedded firmware sketch
+
+The frontend folder does not contain the backend source; the backend lives separately in [hf-space-project](hf-space-project).
 
 ## Getting started for contributors
 If you want to run the project locally, the quickest path is:
