@@ -69,17 +69,42 @@ export default function PrecautionsSheet({
            <div className="px-4 pt-4">
              <div className="h-44 w-full overflow-hidden">
                {(() => {
-                 const observedData = hourlyData.map(h => ({
-                   ...h,
-                   observed: h.aqi,
-                   predicted: null,
-                 }));
-                 const predictedData = (modelPredictions ?? []).map(h => ({
-                   ...h,
-                   observed: null,
-                   predicted: h.aqi,
-                 }));
-                 const chartData = [...observedData, ...predictedData].sort(
+                 const dataMap = new Map<string, any>();
+                 hourlyData.forEach(h => {
+                   dataMap.set(h.time, { ...h, observed: h.aqi, predicted: null });
+                 });
+                 
+                 const preds = modelPredictions ?? [];
+                 let anchorTime = null;
+                 let anchorVal = null;
+                 
+                 if (preds.length > 0) {
+                     const firstPredMs = new Date(preds[0].time).getTime();
+                     // Find the last valid observed point just before the first prediction
+                     const validObs = hourlyData.filter(h => new Date(h.time).getTime() < firstPredMs);
+                     if (validObs.length > 0) {
+                         const lastObs = validObs[validObs.length - 1];
+                         anchorTime = lastObs.time;
+                         anchorVal = lastObs.aqi;
+                     }
+                 }
+
+                 preds.forEach(h => {
+                   if (dataMap.has(h.time)) {
+                     const existing = dataMap.get(h.time);
+                     existing.predicted = h.aqi;
+                     existing.observed = null; // discard overlapping open-meteo forecast
+                   } else {
+                     dataMap.set(h.time, { ...h, observed: null, predicted: h.aqi });
+                   }
+                 });
+                 
+                 // Anchor the prediction line to the observed line
+                 if (anchorTime && dataMap.has(anchorTime)) {
+                     dataMap.get(anchorTime).predicted = anchorVal;
+                 }
+
+                 const chartData = Array.from(dataMap.values()).sort(
                    (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
                  );
 

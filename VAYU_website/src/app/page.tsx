@@ -498,19 +498,20 @@ export default function HomePage() {
                 </div>
 
 
-                {isBadAqiForecasted && highestForecastedAqi && currentPrecautions && (
+                {highestForecastedAqi !== null && currentPrecautions && (
                   <div className={`mt-2 p-2 rounded-md border text-xs ${
                     highestForecastedAqi > 150 ? 'bg-red-500/20 border-red-500/30 text-red-700 dark:text-red-300'
-                                             : 'bg-amber-500/20 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                    : highestForecastedAqi > 50 ? 'bg-amber-500/20 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                    : 'bg-green-500/20 border-green-500/30 text-green-700 dark:text-green-300'
                   }`}>
                     <div className="flex items-center justify-center font-medium">
-                      <AlertTriangle className="w-3.5 h-3.5 mr-1.5 flex-shrink-0"/>
+                      {highestForecastedAqi > 50 ? <AlertTriangle className="w-3.5 h-3.5 mr-1.5 flex-shrink-0"/> : <ShieldCheck className="w-3.5 h-3.5 mr-1.5 flex-shrink-0"/>}
                       Forecast: {currentPrecautions.severity} (AQI {highestForecastedAqi})
                     </div>
                   </div>
                 )}
 
-                {(isBadAqiForecasted || (!ENABLE_AQI_FETCHING && (displayAqi ?? 0) > AQI_ALERT_THRESHOLD)) && currentPrecautions && (
+                {(highestForecastedAqi !== null || (!ENABLE_AQI_FETCHING && (displayAqi ?? 0) > AQI_ALERT_THRESHOLD)) && currentPrecautions && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -518,7 +519,7 @@ export default function HomePage() {
                     onClick={() => setShowPrecautionsSheet(true)}
                   >
                     <ShieldCheck className="w-4 h-4 mr-2"/>
-                    View Precautions
+                    View Details & Precautions
                   </Button>
                 )}
               </div>
